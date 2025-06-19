@@ -18,7 +18,7 @@ const generateAccessAndRefreshToken = async (userId) => {
   }
 }
 
-export const registersUser = async (req, res) => {
+const registersUser = async (req, res) => {
   const { name, email, password, role } = req.body;
   if (
     [name, email, password].some((field) => field?.trim() === "")
@@ -55,7 +55,7 @@ export const registersUser = async (req, res) => {
 
 }
 
-export const loggedInUser = async (res, req) => {
+const loggedInUser = async (res, req) => {
   // req.body => data -compleate
   const { email, password } = req.body
   if (!email) {
