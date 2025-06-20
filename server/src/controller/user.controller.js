@@ -1,10 +1,11 @@
 import { User } from "../models/userModels/user.models.js";
+import jwt from "jsonwebtoken"
 
 const generateAccessAndRefreshToken = async (userId) => {
   try {
     const user = await User.findById(userId)
-    const accessToken = user.generateAccessToken();
-    const refreshToken = user.generateRefreshToken();
+    const accessToken = await user.generateAccessToken();
+    const refreshToken = await user.generateRefreshToken();
 
     user.refreshToken = refreshToken
     await user.save({ validateBeforeSave: false })
@@ -55,15 +56,15 @@ const registersUser = async (req, res) => {
 
 }
 
-const loggedInUser = async (res, req) => {
+const loggedInUser = async (req, res) => {
   // req.body => data -compleate
-  const { email, password } = req.body
-  if (!email) {
+  const { email, password } = req.body;
+  if (!email || !password) {
     throw new Error(400, "email is required");
   }
 
   const user = await User.findOne({
-    $or: { email }
+    email
   })
 
 
@@ -80,23 +81,31 @@ const loggedInUser = async (res, req) => {
     user._id
   )
 
-  const loginUser = await User.findById(userId).select("-password -refreshToken").lean()
+  const loginUser = await User.findById(user._id).select("-password -refreshToken").lean()
 
   const options = {
     httpOnly: true,
+    // secure: true
     secure: process.env.NODE_ENV === "production",
   };
 
-  return res.cookies(accessToken, options).cookies(refreshToken, options).json(200,
-    { user: loginUser, accessToken, refreshToken },
-    "User logged In Successfull")
+  return res
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
+    .status(200)
+    .json(new Response({
+      user: loginUser,
+      accessToken,
+      refreshToken,
+      message: "User logged In Successfully"
+    }));
   // username or email -compleate
   // find the user
   //password cheack
   // accesstoken and refreshtoken
 }
 
-const logoutUser = asyncHandler(async (req, res) => {
+const logoutUser = async (req, res) => {
   User.findByIdAndUpdate(
     {
       _id: req.user._id,
@@ -120,9 +129,9 @@ const logoutUser = asyncHandler(async (req, res) => {
     .clearCookie("accessToken", options)
     .clearCookie("refreshToken", options)
     .json(new ApiResponse(200, {}, "user logout successfull"));
-});
+};
 
-const generateNewRefreshToken = asyncHandler(async (req, res) => {
+const generateNewRefreshToken = async (req, res) => {
   const incommingRefeshToken =
     req.cookies.refreshToken || req.body.refreshToken;
   console.log(incommingRefeshToken);
@@ -165,7 +174,7 @@ const generateNewRefreshToken = asyncHandler(async (req, res) => {
       .cookie("accessToken", accessToken, options)
       .cookie("refreshToken", newRefreshToken, options)
       .json(
-        new ApiResponse(
+        new Response(
           200,
           { accessToken, refreshToken: newRefreshToken },
           "Access Token Refesh"
@@ -174,9 +183,9 @@ const generateNewRefreshToken = asyncHandler(async (req, res) => {
   } catch (error) {
     throw new Error(401, error?.message || "Invalid refesh token");
   }
-});
+};
 
-const changeCurrentUser = asyncHandler(async (req, res) => {
+const changeCurrentUser = async (req, res) => {
   const { oldPassword, newPassword } = req.body;
   console.log(req.body);
 
@@ -191,13 +200,13 @@ const changeCurrentUser = asyncHandler(async (req, res) => {
   await user.save({ validateBeforeSave: false });
 
   return res.json(200, {}, "Password changed Successfully")
-});
+};
 
-const getCurrentUser = asyncHandler(async (req, res) => {
+const getCurrentUser = async (req, res) => {
   return res.json(200, req.user, "Current user fetched successfully")
-});
+};
 
-const updateAccountDetails = asyncHandler(async (req, res) => {
+const updateAccountDetails = async (req, res) => {
   const { fullname, email } = req.body;
 
   if (!fullname || !email) {
@@ -221,7 +230,7 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
 
   return res.json(200, updateDetails, "Update Account details successfully")
 
-});
+}
 
 export {
   registersUser,

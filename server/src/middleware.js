@@ -21,8 +21,6 @@ export const verifyToken = async (req, _, next) => {
         next()
     } catch (error) {
         return next(new Error(401, 'Unauthorized'))
-
-
     }
 
 }
