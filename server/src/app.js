@@ -20,7 +20,8 @@ app.use(express.static("public"))
 app.use(cookieParser())
 
 import userRouter from "./router/user.router.js";
-
+import bookRouter from "./router/book.router.js"
 app.use("/api/users", userRouter)
+app.use("/api/books", bookRouter)
 
 export { app };
